@@ -1,5 +1,6 @@
 import requests, time, datetime, hmac, hashlib, json
-
+import sys
+sys.stdout.reconfigure(line_buffering=True)
 BASE = 'https://cdn-ind.testnet.deltaex.org'
 API_KEY = 'Ag6qMLKDsgFU8B1tlVEeJIBKxUveeV'
 API_SECRET = 'PpifqTPhZHb2CdeawQgDCAwaXU21PoPuC4ZQA4DKekf1JCYoj769tjDbammi'
