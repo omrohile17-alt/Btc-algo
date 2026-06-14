@@ -1,7 +1,7 @@
-import requests, time, datetime, hmac, hashlib, json
 import sys
 sys.stdout.reconfigure(line_buffering=True)
 import requests, time, datetime, hmac, hashlib, json
+
 BASE = 'https://cdn-ind.testnet.deltaex.org'
 API_KEY = 'Ag6qMLKDsgFU8B1tlVEeJIBKxUveeV'
 API_SECRET = 'PpifqTPhZHb2CdeawQgDCAwaXU21PoPuC4ZQA4DKekf1JCYoj769tjDbammi'
@@ -49,12 +49,11 @@ def get_signal(candles):
         return 'sell', price, atr
     return None, None, None
 
-def place_stop_order(side, stop_price, close_side):
-    """Place a separate stop order for SL or TP"""
+def place_stop_order(signal, stop_price, close_side):
     body = json.dumps({
         'product_id': 84,
         'size': 5,
-        'side': close_side,           # opposite side to close position
+        'side': close_side,
         'order_type': 'limit_order',
         'stop_order_type': 'stop_loss_order',
         'stop_price': str(int(stop_price)),
@@ -69,8 +68,6 @@ def place_order(signal, price, atr):
     sl = round(price-(atr*1.0),0) if signal=='buy' else round(price+(atr*1.0),0)
     tp = round(price+(atr*2.0),0) if signal=='buy' else round(price-(atr*2.0),0)
     print(f"SIGNAL: {signal.upper()} | Price:{price} | SL:{sl} | TP:{tp}")
-
-    # Step 1: Main market order
     body = json.dumps({
         'product_id': 84,
         'size': 5,
@@ -80,20 +77,15 @@ def place_order(signal, price, atr):
     headers = sign_request('POST', '/v2/orders', body)
     r = requests.post(BASE+'/v2/orders', headers=headers, data=body)
     result = r.json()
-
     if result.get('success'):
         print(f"✅ Main order placed!")
-        time.sleep(2)  # Wait for order to fill
-
-        # Step 2: Place SL stop order
+        time.sleep(2)
         close_side = 'sell' if signal == 'buy' else 'buy'
         sl_result = place_stop_order(signal, sl, close_side)
         if sl_result.get('success'):
             print(f"✅ SL order placed at {sl}")
         else:
             print(f"❌ SL order failed: {sl_result}")
-
-        # Step 3: Place TP stop order
         tp_result = place_stop_order(signal, tp, close_side)
         if tp_result.get('success'):
             print(f"✅ TP order placed at {tp}")
