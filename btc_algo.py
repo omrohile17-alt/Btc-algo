@@ -49,24 +49,27 @@ def get_signal(candles):
         return 'sell', price, atr
     return None, None, None
 
-def place_stop_order(signal, stop_price, close_side):
+def place_stop_order(stop_price, close_side, label):
     body = json.dumps({
         'product_id': 84,
         'size': 5,
         'side': close_side,
-        'order_type': 'limit_order',
+        'order_type': 'market_order',
         'stop_order_type': 'stop_loss_order',
         'stop_price': str(int(stop_price)),
-        'limit_price': str(int(stop_price)),
         'reduce_only': True
     })
     headers = sign_request('POST', '/v2/orders', body)
     r = requests.post(BASE+'/v2/orders', headers=headers, data=body)
-    return r.json()
+    result = r.json()
+    if result.get('success'):
+        print(f"✅ {label} placed at {stop_price}")
+    else:
+        print(f"❌ {label} failed: {result}")
 
 def place_order(signal, price, atr):
-    sl = round(price-(atr*1.0),0) if signal=='buy' else round(price+(atr*1.0),0)
-    tp = round(price+(atr*2.0),0) if signal=='buy' else round(price-(atr*2.0),0)
+    sl = round(price-(atr*1.5),0) if signal=='buy' else round(price+(atr*1.5),0)
+    tp = round(price+(atr*3.0),0) if signal=='buy' else round(price-(atr*3.0),0)
     print(f"SIGNAL: {signal.upper()} | Price:{price} | SL:{sl} | TP:{tp}")
     body = json.dumps({
         'product_id': 84,
@@ -79,25 +82,17 @@ def place_order(signal, price, atr):
     result = r.json()
     if result.get('success'):
         print(f"✅ Main order placed!")
-        time.sleep(2)
+        time.sleep(3)
         close_side = 'sell' if signal == 'buy' else 'buy'
-        sl_result = place_stop_order(signal, sl, close_side)
-        if sl_result.get('success'):
-            print(f"✅ SL order placed at {sl}")
-        else:
-            print(f"❌ SL order failed: {sl_result}")
-        tp_result = place_stop_order(signal, tp, close_side)
-        if tp_result.get('success'):
-            print(f"✅ TP order placed at {tp}")
-        else:
-            print(f"❌ TP order failed: {tp_result}")
+        place_stop_order(sl, close_side, 'SL')
+        place_stop_order(tp, close_side, 'TP')
     else:
         print(f"❌ Main order failed: {result}")
 
 print("="*40)
 print(" BTCUSD ALGO - Delta Testnet")
 print(" EMA 10/50/200 + RSI + ATR")
-print(" SL: 1x ATR | TP: 2x ATR")
+print(" SL: 1.5x ATR | TP: 3x ATR")
 print("="*40)
 
 last_candle = None
