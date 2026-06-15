@@ -35,7 +35,12 @@ def get_position():
 def get_candles():
     end = int(time.time())
     start = end - (200 * 15 * 60)
-    r = requests.get(BASE+'/v2/history/candles', params={'symbol': 'BTCUSD', 'resolution': '15m', 'start': start, 'end': end})
+    r = requests.get(BASE+'/v2/history/candles', params={
+        'symbol': 'BTCUSD',
+        'resolution': '15m',
+        'start': start,
+        'end': end
+    })
     candles = r.json().get('result', [])
     return list(reversed(candles))
 
@@ -69,7 +74,14 @@ def get_signal(candles):
 
 def place_sl(side, sl):
     sl_side = 'buy' if side == 'sell' else 'sell'
-    body = json.dumps({'product_id': 84, 'size': 1, 'side': sl_side, 'order_type': 'limit_order', 'limit_price': str(int(sl)), 'reduce_only': True})
+    body = json.dumps({
+        'product_id': 84,
+        'size': 1,
+        'side': sl_side,
+        'order_type': 'limit_order',
+        'limit_price': str(int(sl)),
+        'reduce_only': True
+    })
     headers = sign_request('POST', '/v2/orders', body)
     r = requests.post(BASE+'/v2/orders', headers=headers, data=body)
     result = r.json()
@@ -80,7 +92,14 @@ def place_sl(side, sl):
 
 def place_tp(side, tp):
     tp_side = 'buy' if side == 'sell' else 'sell'
-    body = json.dumps({'product_id': 84, 'size': 1, 'side': tp_side, 'order_type': 'limit_order', 'limit_price': str(int(tp)), 'reduce_only': True})
+    body = json.dumps({
+        'product_id': 84,
+        'size': 1,
+        'side': tp_side,
+        'order_type': 'limit_order',
+        'limit_price': str(int(tp)),
+        'reduce_only': True
+    })
     headers = sign_request('POST', '/v2/orders', body)
     r = requests.post(BASE+'/v2/orders', headers=headers, data=body)
     result = r.json()
@@ -96,15 +115,29 @@ def place_order(signal, price, atr):
     else:
         sl = round(price + (atr * 1.5), 0)
         tp = round(price - (atr * 3.0), 0)
+
     print(f"SIGNAL: {signal.upper()} | Price:{price} | SL:{sl} | TP:{tp}")
-    body = json.dumps({'product_id': 84, 'size': 1, 'side': signal, 'order_type': 'market_order'})
+
+    body = json.dumps({
+        'product_id': 84,
+        'size': 1,
+        'side': signal,
+        'order_type': 'market_order'
+    })
     headers = sign_request('POST', '/v2/orders', body)
     r = requests.post(BASE+'/v2/orders', headers=headers, data=body)
     result = r.json()
+
     if result.get('success'):
         print(f"✅ Main order placed!")
-        send_telegram(f"🚨 BTC SIGNAL\n{'🟢 BUY' if signal == 'buy' else '🔴 SELL'} @ {price}\n📍 SL: {sl}\n🎯 TP: {tp}\n✅ Auto SL/TP lag raha hai!")
-        time.sleep(2)
+        send_telegram(
+            f"🚨 BTC SIGNAL\n"
+            f"{'🟢 BUY' if signal == 'buy' else '🔴 SELL'} @ {price}\n"
+            f"📍 SL: {sl}\n"
+            f"🎯 TP: {tp}\n"
+            f"✅ Auto SL/TP lag raha hai!"
+        )
+        time.sleep(5)  # position settle hone do
         place_sl(signal, sl)
         place_tp(signal, tp)
     else:
@@ -114,22 +147,34 @@ def place_order(signal, price, atr):
 print("="*40)
 print(" BTCUSD ALGO - Delta Testnet")
 print(" MODE: Auto SL/TP")
+print(" SL: 1.5x ATR | TP: 3.0x ATR")
 print("="*40)
+
 send_telegram("🤖 Bot started! Auto SL/TP mode")
+
 last_candle = None
+
 while True:
     now = datetime.datetime.now()
     print(f"\n[{now.strftime('%H:%M:%S')}] Checking...")
+
     pos = get_position()
     if pos:
         print(f"Position open: {pos.get('side')} | Entry:{pos.get('entry_price')}")
         time.sleep(60)
         continue
+
     candles = get_candles()
     print(f"Candles: {len(candles)}")
+
     signal, price, atr = get_signal(candles)
+
     if signal:
-        candle_time = now.replace(minute=(now.minute // 15) * 15, second=0, microsecond=0)
+        candle_time = now.replace(
+            minute=(now.minute // 15) * 15,
+            second=0,
+            microsecond=0
+        )
         if last_candle == candle_time:
             print("Already traded this candle")
         else:
@@ -137,4 +182,5 @@ while True:
             last_candle = candle_time
     else:
         print("No signal")
+
     time.sleep(60)
