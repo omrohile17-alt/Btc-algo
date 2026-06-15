@@ -15,7 +15,7 @@ def send_telegram(msg):
             f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
             params={'chat_id': TELEGRAM_CHAT_ID, 'text': msg}
         )
-        print(f"Telegram: {r.json()}")
+        print(f"Telegram: {r.json().get('ok')}")
     except Exception as e:
         print(f"Telegram error: {e}")
 
@@ -47,7 +47,8 @@ def get_candles():
         'start': start,
         'end': end
     })
-    return r.json().get('result', [])
+    candles = r.json().get('result', [])
+    return list(reversed(candles))  # latest last mein
 
 def get_signal(candles):
     if len(candles) < 200:
@@ -75,6 +76,8 @@ def get_signal(candles):
     losses = [max(0, closes[i-1]-closes[i]) for i in range(-14, 0)]
     rs  = (sum(gains)/14) / (sum(losses)/14 + 0.0001)
     rsi = 100 - 100/(1+rs)
+
+    print(f"Price:{price} EMA10:{round(ema10,1)} EMA50:{round(ema50,1)} EMA200:{round(ema200,1)} RSI:{round(rsi,1)}")
 
     if ema10 > ema50 and price > ema200 and rsi > 55:
         return 'buy', price, atr
