@@ -78,8 +78,6 @@ def place_sl(side, sl):
         'side': sl_side,
         'order_type': 'limit_order',
         'limit_price': str(int(sl)),
-        'stop_price': str(int(sl)),
-        'stop_order_type': 'stop_loss_order',
         'reduce_only': True
     })
     headers = sign_request('POST', '/v2/orders', body)
