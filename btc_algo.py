@@ -7,16 +7,17 @@ API_KEY = 'Ag6qMLKDsgFU8B1tlVEeJIBKxUveeV'
 API_SECRET = 'PpifqTPhZHb2CdeawQgDCAwaXU21PoPuC4ZQA4DKekf1JCYoj769tjDbammi'
 
 TELEGRAM_TOKEN = '8926593994:AAGmrgTBfjw93DG3reg1QEj_Q0P6Hi-PBUo'
-TELEGRAM_CHAT_ID = '93372553'
+TELEGRAM_CHAT_ID = '2133720588'
 
 def send_telegram(msg):
     try:
-        requests.get(
+        r = requests.get(
             f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
             params={'chat_id': TELEGRAM_CHAT_ID, 'text': msg}
         )
-    except:
-        print("Telegram alert failed")
+        print(f"Telegram: {r.json()}")
+    except Exception as e:
+        print(f"Telegram error: {e}")
 
 def sign_request(method, path, body=''):
     ts = str(int(time.time()))
@@ -82,42 +83,6 @@ def get_signal(candles):
 
     return None, None, None
 
-def place_sl(side, sl):
-    sl_side = 'buy' if side == 'sell' else 'sell'
-    body = json.dumps({
-        'product_id': 84,
-        'size': 1,
-        'side': sl_side,
-        'order_type': 'limit_order',
-        'limit_price': str(int(sl)),
-        'reduce_only': True
-    })
-    headers = sign_request('POST', '/v2/orders', body)
-    r = requests.post(BASE+'/v2/orders', headers=headers, data=body)
-    result = r.json()
-    if result.get('success'):
-        print(f"✅ SL placed: {sl}")
-    else:
-        print(f"❌ SL failed: {result}")
-
-def place_tp(side, tp):
-    tp_side = 'buy' if side == 'sell' else 'sell'
-    body = json.dumps({
-        'product_id': 84,
-        'size': 1,
-        'side': tp_side,
-        'order_type': 'limit_order',
-        'limit_price': str(int(tp)),
-        'reduce_only': True
-    })
-    headers = sign_request('POST', '/v2/orders', body)
-    r = requests.post(BASE+'/v2/orders', headers=headers, data=body)
-    result = r.json()
-    if result.get('success'):
-        print(f"✅ TP placed: {tp}")
-    else:
-        print(f"❌ TP failed: {result}")
-
 def place_order(signal, price, atr):
     if signal == 'buy':
         sl = round(price - (atr * 1.5), 0)
@@ -145,12 +110,9 @@ def place_order(signal, price, atr):
             f"{'🟢 BUY' if signal == 'buy' else '🔴 SELL'} @ {price}\n"
             f"📍 SL: {sl}\n"
             f"🎯 TP: {tp}\n"
-            f"⚠️ Manually SL lagao Delta pe!"
+            f"⚠️ Manually SL/TP lagao!"
         )
         send_telegram(alert)
-        time.sleep(2)
-        place_sl(signal, sl)
-        place_tp(signal, tp)
     else:
         print(f"❌ Order failed: {result}")
         send_telegram(f"❌ Order failed: {signal.upper()} @ {price}")
