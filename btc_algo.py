@@ -49,9 +49,30 @@ def get_signal(candles):
         return 'sell', price, atr
     return None, None, None
 
+def test_order():
+    """Test order with fixed SL/TP to check bracket order works"""
+    print("\n🧪 TEST ORDER chalate hain...")
+    body = json.dumps({
+        'product_id': 84,
+        'size': 1,
+        'side': 'buy',
+        'order_type': 'market_order',
+        'bracket_stop_loss_price': '60000',
+        'bracket_stop_loss_limit_price': '60000',
+        'bracket_take_profit_price': '70000',
+        'bracket_take_profit_limit_price': '70000'
+    })
+    headers = sign_request('POST', '/v2/orders', body)
+    r = requests.post(BASE+'/v2/orders', headers=headers, data=body)
+    result = r.json()
+    if result.get('success'):
+        print("✅ Test order placed! SL:60000 TP:70000")
+    else:
+        print(f"❌ Test order failed: {result}")
+
 def place_order(signal, price, atr):
-    sl = round(price-(atr*1.5),0) if signal=='buy' else round(price+(atr*1.5),0)
-    tp = round(price+(atr*3.0),0) if signal=='buy' else round(price-(atr*3.0),0)
+    sl = round(price-(atr*1.2),0) if signal=='buy' else round(price+(atr*1.2),0)
+    tp = round(price+(atr*2.5),0) if signal=='buy' else round(price-(atr*2.5),0)
     print(f"SIGNAL: {signal.upper()} | Price:{price} | SL:{sl} | TP:{tp}")
     body = json.dumps({
         'product_id': 84,
@@ -74,8 +95,10 @@ def place_order(signal, price, atr):
 print("="*40)
 print(" BTCUSD ALGO - Delta Testnet")
 print(" EMA 10/50/200 + RSI + ATR")
-print(" SL: 1.5x ATR | TP: 3x ATR")
+print(" SL: 1.2x ATR | TP: 2.5x ATR")
 print("="*40)
+
+test_order()
 
 last_candle = None
 while True:
