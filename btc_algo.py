@@ -49,24 +49,6 @@ def get_signal(candles):
         return 'sell', price, atr
     return None, None, None
 
-def place_stop_order(stop_price, close_side, label):
-    body = json.dumps({
-        'product_id': 84,
-        'size': 5,
-        'side': close_side,
-        'order_type': 'market_order',
-        'stop_order_type': 'stop_loss_order',
-        'stop_price': str(int(stop_price)),
-        'reduce_only': True
-    })
-    headers = sign_request('POST', '/v2/orders', body)
-    r = requests.post(BASE+'/v2/orders', headers=headers, data=body)
-    result = r.json()
-    if result.get('success'):
-        print(f"✅ {label} placed at {stop_price}")
-    else:
-        print(f"❌ {label} failed: {result}")
-
 def place_order(signal, price, atr):
     sl = round(price-(atr*1.5),0) if signal=='buy' else round(price+(atr*1.5),0)
     tp = round(price+(atr*3.0),0) if signal=='buy' else round(price-(atr*3.0),0)
@@ -75,19 +57,19 @@ def place_order(signal, price, atr):
         'product_id': 84,
         'size': 5,
         'side': signal,
-        'order_type': 'market_order'
+        'order_type': 'market_order',
+        'bracket_stop_loss_price': str(int(sl)),
+        'bracket_stop_loss_limit_price': str(int(sl)),
+        'bracket_take_profit_price': str(int(tp)),
+        'bracket_take_profit_limit_price': str(int(tp))
     })
     headers = sign_request('POST', '/v2/orders', body)
     r = requests.post(BASE+'/v2/orders', headers=headers, data=body)
     result = r.json()
     if result.get('success'):
-        print(f"✅ Main order placed!")
-        time.sleep(3)
-        close_side = 'sell' if signal == 'buy' else 'buy'
-        place_stop_order(sl, close_side, 'SL')
-        place_stop_order(tp, close_side, 'TP')
+        print(f"✅ Order placed! SL:{sl} TP:{tp}")
     else:
-        print(f"❌ Main order failed: {result}")
+        print(f"❌ Order failed: {result}")
 
 print("="*40)
 print(" BTCUSD ALGO - Delta Testnet")
