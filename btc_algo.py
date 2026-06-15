@@ -6,6 +6,18 @@ BASE = 'https://cdn-ind.testnet.deltaex.org'
 API_KEY = 'Ag6qMLKDsgFU8B1tlVEeJIBKxUveeV'
 API_SECRET = 'PpifqTPhZHb2CdeawQgDCAwaXU21PoPuC4ZQA4DKekf1JCYoj769tjDbammi'
 
+TELEGRAM_TOKEN = '8926593994:AAGmrgTBfjw93DG3reg1QEj_Q0P6Hi-PBUo'
+TELEGRAM_CHAT_ID = '93372553'
+
+def send_telegram(msg):
+    try:
+        requests.get(
+            f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
+            params={'chat_id': TELEGRAM_CHAT_ID, 'text': msg}
+        )
+    except:
+        print("Telegram alert failed")
+
 def sign_request(method, path, body=''):
     ts = str(int(time.time()))
     msg = method + ts + path + body
@@ -108,11 +120,11 @@ def place_tp(side, tp):
 
 def place_order(signal, price, atr):
     if signal == 'buy':
-        sl = round(price - (atr * 2.0), 0)
-        tp = round(price + (atr * 4.0), 0)
+        sl = round(price - (atr * 1.5), 0)
+        tp = round(price + (atr * 3.0), 0)
     else:
-        sl = round(price + (atr * 2.0), 0)
-        tp = round(price - (atr * 4.0), 0)
+        sl = round(price + (atr * 1.5), 0)
+        tp = round(price - (atr * 3.0), 0)
 
     print(f"SIGNAL: {signal.upper()} | Price:{price} | SL:{sl} | TP:{tp}")
 
@@ -128,17 +140,28 @@ def place_order(signal, price, atr):
 
     if result.get('success'):
         print(f"✅ Main order placed!")
+        alert = (
+            f"🚨 BTC SIGNAL\n"
+            f"{'🟢 BUY' if signal == 'buy' else '🔴 SELL'} @ {price}\n"
+            f"📍 SL: {sl}\n"
+            f"🎯 TP: {tp}\n"
+            f"⚠️ Manually SL lagao Delta pe!"
+        )
+        send_telegram(alert)
         time.sleep(2)
         place_sl(signal, sl)
         place_tp(signal, tp)
     else:
         print(f"❌ Order failed: {result}")
+        send_telegram(f"❌ Order failed: {signal.upper()} @ {price}")
 
 print("="*40)
 print(" BTCUSD ALGO - Delta Testnet")
 print(" EMA 10/50/200 + RSI + ATR")
-print(" SL: 2.0x ATR | TP: 4.0x ATR")
+print(" SL: 1.5x ATR | TP: 3.0x ATR")
 print("="*40)
+
+send_telegram("🤖 BTC Algo Bot started!")
 
 last_candle = None
 
